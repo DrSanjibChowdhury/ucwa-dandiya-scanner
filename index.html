@@ -1,0 +1,168 @@
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>UCWA Dandiya 2026 | QR Scanner</title>
+
+  <script src="https://unpkg.com/html5-qrcode"></script>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 520px;
+      margin: 0 auto;
+      padding: 20px;
+      text-align: center;
+      background: #fff8ed;
+      color: #33220f;
+    }
+
+    h1 { font-size: 24px; }
+    p { line-height: 1.5; }
+
+    button {
+      border: 0;
+      border-radius: 8px;
+      padding: 13px 20px;
+      margin: 8px 4px;
+      font-size: 16px;
+      cursor: pointer;
+      background: #8b1e3f;
+      color: white;
+    }
+
+    #reader {
+      width: 100%;
+      margin: 20px auto;
+    }
+
+    #status {
+      padding: 12px;
+      overflow-wrap: anywhere;
+    }
+  </style>
+</head>
+
+<body>
+  <h1>UCWA Dandiya Event 2026</h1>
+  <p>Volunteer QR Check-in Scanner</p>
+
+  <div id="reader"></div>
+
+  <button id="startButton" onclick="startScanner()">
+    Start Camera
+  </button>
+
+  <button onclick="stopScanner()">
+    Stop Camera
+  </button>
+
+  <p id="status">Tap Start Camera and allow camera access.</p>
+
+  <script>
+    // Your existing Google Apps Script deployment.
+    const SCRIPT_BASE =
+      "https://script.google.com/macros/s/AKfycbyBydZOKJQLp7I9ogJs3hCJs6WnV1NErMvq2Y1mqwpipYTbAXwqK8cT-ru7lq6wwYS5/exec";
+
+    let scanner = null;
+    let processing = false;
+
+    async function startScanner() {
+      const status = document.getElementById("status");
+
+      if (typeof Html5Qrcode === "undefined") {
+        status.textContent =
+          "Scanner library failed to load. Check your internet connection.";
+        return;
+      }
+
+      try {
+        if (!scanner) {
+          scanner = new Html5Qrcode("reader");
+        }
+
+        processing = false;
+        status.textContent = "Requesting camera access...";
+
+        await scanner.start(
+          { facingMode: "environment" },
+          {
+            fps: 10,
+            qrbox: { width: 250, height: 250 }
+          },
+          onScanSuccess,
+          function () {}
+        );
+
+        status.textContent = "Camera active. Scan the attendee QR code.";
+      } catch (error) {
+        status.textContent =
+          "Camera could not start: " + error +
+          ". Allow camera access in your browser settings and retry.";
+      }
+    }
+
+    async function stopScanner() {
+      if (scanner && scanner.isScanning) {
+        try {
+          await scanner.stop();
+          document.getElementById("status").textContent =
+            "Camera stopped.";
+        } catch (error) {
+          document.getElementById("status").textContent =
+            "Unable to stop camera: " + error;
+        }
+      }
+    }
+
+    async function onScanSuccess(decodedText) {
+      if (processing) return;
+      processing = true;
+
+      document.getElementById("status").textContent =
+        "QR detected. Validating ticket...";
+
+      try {
+        const scannedUrl = new URL(decodedText);
+        const expectedUrl = new URL(SCRIPT_BASE);
+
+        // Accept only QR URLs from your Apps Script deployment.
+        if (
+          scannedUrl.origin !== expectedUrl.origin ||
+          scannedUrl.pathname !== expectedUrl.pathname
+        ) {
+          throw new Error("This is not a valid UCWA event ticket.");
+        }
+
+        const ticketId = scannedUrl.searchParams.get("ticket");
+        const page = scannedUrl.searchParams.get("page");
+
+        if (!ticketId || page !== "checkin") {
+          throw new Error("Ticket ID missing or QR format invalid.");
+        }
+
+        await stopScanner();
+
+        document.getElementById("status").textContent =
+          "Ticket accepted. Opening check-in page...";
+
+        // Rebuild the destination using your trusted deployment URL.
+        const approvalUrl =
+          SCRIPT_BASE +
+          "?page=checkin&ticket=" +
+          encodeURIComponent(ticketId);
+
+        window.location.href = approvalUrl;
+
+      } catch (error) {
+        processing = false;
+        document.getElementById("status").textContent =
+          error.message || "Could not read this ticket.";
+      }
+    }
+  </script>
+</body>
+</html>
+```
