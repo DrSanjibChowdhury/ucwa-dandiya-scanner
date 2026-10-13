@@ -92,7 +92,64 @@
             fps: 10,
             qrbox: { width: 250, height: 250 }
           },
-          onScanSuccess,
+          ```javascript
+async function onScanSuccess(decodedText) {
+  if (processing) return;
+  processing = true;
+
+  const status = document.getElementById("status");
+
+  try {
+    status.textContent = "QR detected. Reading ticket...";
+
+    // Support both full ticket URLs and QR codes containing
+    // a ticket ID or a URL embedded in other text.
+    const text = decodedText.trim();
+    let ticketId = "";
+
+    try {
+      const url = new URL(text);
+      ticketId = url.searchParams.get("ticket") || "";
+    } catch (_) {
+      // The QR may contain plain text rather than a URL.
+    }
+
+    // Accept a standalone ticket ID if the QR contains one.
+    if (!ticketId && /^[A-Fa-f0-9]{16}$/.test(text)) {
+      ticketId = text;
+    }
+
+    // Also support URLs or text containing a ticket parameter.
+    if (!ticketId) {
+      const match = text.match(/[?&]ticket=([A-Fa-f0-9]{16})/i);
+      if (match) ticketId = match[1];
+    }
+
+    if (!ticketId || !/^[A-Fa-f0-9]{16}$/.test(ticketId)) {
+      status.textContent =
+        "QR detected, but no valid ticket ID was found. " +
+        "Check that this is an attendee registration QR code.";
+      processing = false;
+      return;
+    }
+
+    await stopScanner();
+
+    status.textContent = "Ticket found. Opening approval page...";
+
+    const approvalUrl =
+      SCRIPT_BASE +
+      "?page=checkin&ticket=" +
+      encodeURIComponent(ticketId);
+
+    window.location.href = approvalUrl;
+
+  } catch (error) {
+    status.textContent = "Scanner error: " + error.message;
+    processing = false;
+  }
+}
+```,
           function () {}
         );
 
