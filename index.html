@@ -23,6 +23,14 @@
     button.secondary { background:#62576d; }
     button.exit-button { background:#c62828; color:#fff; border:2px solid #a71919; font-weight:900; letter-spacing:.06em; }
     button.exit-button:active { background:#a71919; }
+    button.global-exit-button {
+      position:fixed; right:16px; bottom:24px; z-index:99999;
+      width:auto; min-width:100px; margin:0; padding:14px 22px;
+      background:#c62828; color:#fff; border:3px solid #fff;
+      border-radius:999px; box-shadow:0 4px 18px #0005;
+      font-size:1rem; font-weight:900; letter-spacing:.08em;
+    }
+    button.global-exit-button:active { background:#a71919; transform:scale(.98); }
     button.outline { background:#fff; color:var(--purple-dark); border:1px solid var(--purple); }
     .hidden { display:none !important; }
     .status { margin-top:14px; padding:12px 14px; border-radius:10px; background:#f0eafa; overflow-wrap:anywhere; }
@@ -84,6 +92,8 @@
     </div>
     <p class="small" style="text-align:center;margin-top:14px">UCWA Dandiya Event 2026 · Authorized volunteers only</p>
   </main>
+
+  <button type="button" id="globalExitButton" class="global-exit-button">EXIT</button>
 
 <script>
 (() => {
@@ -394,6 +404,7 @@
 
   $("logoutButton").addEventListener("click", exitVolunteerSession);
   $("resultExitButton").addEventListener("click", exitVolunteerSession);
+  $("globalExitButton").addEventListener("click", exitVolunteerSession);
 
   // Restore this tab's active session after a refresh.
   if (getToken()) {
