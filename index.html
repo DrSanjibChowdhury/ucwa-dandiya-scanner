@@ -4,219 +4,208 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>UCWA Dandiya 2026 | QR Scanner</title>
+  <title>UCWA Dandiya Event 2026 - Scanner</title>
 
-  <script src="https://unpkg.com/html5-qrcode"></script>
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 
   <style>
+    * { box-sizing: border-box; }
+
     body {
       font-family: Arial, sans-serif;
       max-width: 520px;
       margin: 0 auto;
       padding: 20px;
-      text-align: center;
       background: #fff8ed;
       color: #33220f;
+      text-align: center;
     }
 
-    h1 { font-size: 24px; }
-    p { line-height: 1.5; }
-
-    button {
-      border: 0;
-      border-radius: 8px;
-      padding: 13px 20px;
-      margin: 8px 4px;
-      font-size: 16px;
-      cursor: pointer;
-      background: #8b1e3f;
-      color: white;
-    }
+    h1 { color: #8b1e3f; font-size: 26px; }
 
     #reader {
       width: 100%;
       margin: 20px auto;
+      background: white;
+      border-radius: 10px;
+      overflow: hidden;
     }
 
+    button {
+      width: 100%;
+      padding: 14px;
+      margin: 7px 0;
+      border: 0;
+      border-radius: 8px;
+      background: #8b1e3f;
+      color: white;
+      font-size: 16px;
+      font-weight: bold;
+    }
+
+    button:disabled { opacity: .5; }
+
     #status {
-      padding: 12px;
+      margin-top: 18px;
+      padding: 14px;
+      border-radius: 8px;
+      background: #f0e7d8;
       overflow-wrap: anywhere;
+      white-space: pre-wrap;
     }
   </style>
 </head>
 
 <body>
-  <h1>UCWA Dandiya Event 2026</h1>
+  <h1>💃 UCWA Dandiya Event 2026</h1>
   <p>Volunteer QR Check-in Scanner</p>
 
   <div id="reader"></div>
 
-  <button id="startButton" onclick="startScanner()">
+  <button id="startButton" type="button" onclick="startScanner()">
     Start Camera
   </button>
 
-  <button onclick="stopScanner()">
+  <button id="stopButton" type="button" onclick="stopScanner()" disabled>
     Stop Camera
   </button>
 
-  <p id="status">Tap Start Camera and allow camera access.</p>
+  <div id="status" role="status" aria-live="polite">
+    Ready. Tap Start Camera.
+  </div>
 
   <script>
-    // Your existing Google Apps Script deployment.
     const SCRIPT_BASE =
       "https://script.google.com/macros/s/AKfycbyBydZOKJQLp7I9ogJs3hCJs6WnV1NErMvq2Y1mqwpipYTbAXwqK8cT-ru7lq6wwYS5/exec";
 
     let scanner = null;
+    let starting = false;
     let processing = false;
 
-    async function startScanner() {
-      const status = document.getElementById("status");
+    function setStatus(message) {
+      document.getElementById("status").textContent = message;
+    }
 
-      if (typeof Html5Qrcode === "undefined") {
-        status.textContent =
-          "Scanner library failed to load. Check your internet connection.";
-        return;
-      }
+    async function startScanner() {
+      if (starting || (scanner && scanner.isScanning)) return;
+
+      starting = true;
+      document.getElementById("startButton").disabled = true;
+      setStatus("Loading scanner and requesting camera access...");
 
       try {
+        if (typeof Html5Qrcode === "undefined") {
+          throw new Error(
+            "Scanner library did not load. Check internet access and refresh."
+          );
+        }
+
         if (!scanner) {
           scanner = new Html5Qrcode("reader");
         }
-
-        processing = false;
-        status.textContent = "Requesting camera access...";
 
         await scanner.start(
           { facingMode: "environment" },
           {
             fps: 10,
-            qrbox: { width: 250, height: 250 }
+            qrbox: { width: 240, height: 240 }
           },
-          ```javascript
-async function onScanSuccess(decodedText) {
-  if (processing) return;
-  processing = true;
-
-  const status = document.getElementById("status");
-
-  try {
-    status.textContent = "QR detected. Reading ticket...";
-
-    // Support both full ticket URLs and QR codes containing
-    // a ticket ID or a URL embedded in other text.
-    const text = decodedText.trim();
-    let ticketId = "";
-
-    try {
-      const url = new URL(text);
-      ticketId = url.searchParams.get("ticket") || "";
-    } catch (_) {
-      // The QR may contain plain text rather than a URL.
-    }
-
-    // Accept a standalone ticket ID if the QR contains one.
-    if (!ticketId && /^[A-Fa-f0-9]{16}$/.test(text)) {
-      ticketId = text;
-    }
-
-    // Also support URLs or text containing a ticket parameter.
-    if (!ticketId) {
-      const match = text.match(/[?&]ticket=([A-Fa-f0-9]{16})/i);
-      if (match) ticketId = match[1];
-    }
-
-    if (!ticketId || !/^[A-Fa-f0-9]{16}$/.test(ticketId)) {
-      status.textContent =
-        "QR detected, but no valid ticket ID was found. " +
-        "Check that this is an attendee registration QR code.";
-      processing = false;
-      return;
-    }
-
-    await stopScanner();
-
-    status.textContent = "Ticket found. Opening approval page...";
-
-    const approvalUrl =
-      SCRIPT_BASE +
-      "?page=checkin&ticket=" +
-      encodeURIComponent(ticketId);
-
-    window.location.href = approvalUrl;
-
-  } catch (error) {
-    status.textContent = "Scanner error: " + error.message;
-    processing = false;
-  }
-}
-```,
-          function () {}
+          function(decodedText) {
+            handleScannedQR(decodedText);
+          },
+          function() {
+            // No QR detected in this frame; continue scanning.
+          }
         );
 
-        status.textContent = "Camera active. Scan the attendee QR code.";
+        document.getElementById("stopButton").disabled = false;
+        setStatus("Camera active. Point it at an attendee ticket QR code.");
+
       } catch (error) {
-        status.textContent =
-          "Camera could not start: " + error +
-          ". Allow camera access in your browser settings and retry.";
+        setStatus(
+          "CAMERA START FAILED\n\n" +
+          (error && error.message ? error.message : String(error)) +
+          "\n\nCheck camera permission and internet access, then retry."
+        );
+        document.getElementById("startButton").disabled = false;
+
+      } finally {
+        starting = false;
       }
     }
 
     async function stopScanner() {
-      if (scanner && scanner.isScanning) {
-        try {
-          await scanner.stop();
-          document.getElementById("status").textContent =
-            "Camera stopped.";
-        } catch (error) {
-          document.getElementById("status").textContent =
-            "Unable to stop camera: " + error;
-        }
+      if (!scanner || !scanner.isScanning) return;
+
+      try {
+        await scanner.stop();
+        document.getElementById("stopButton").disabled = true;
+      } catch (error) {
+        setStatus("Could not stop camera: " + error.message);
       }
     }
 
-    async function onScanSuccess(decodedText) {
+    async function handleScannedQR(decodedText) {
       if (processing) return;
       processing = true;
 
-      document.getElementById("status").textContent =
-        "QR detected. Validating ticket...";
+      setStatus("QR detected. Reading ticket...");
 
       try {
-        const scannedUrl = new URL(decodedText);
-        const expectedUrl = new URL(SCRIPT_BASE);
+        const text = decodedText.trim();
+        let ticketId = "";
 
-        // Accept only QR URLs from your Apps Script deployment.
-        if (
-          scannedUrl.origin !== expectedUrl.origin ||
-          scannedUrl.pathname !== expectedUrl.pathname
-        ) {
-          throw new Error("This is not a valid UCWA event ticket.");
+        // QR may contain the full Apps Script ticket URL.
+        try {
+          const url = new URL(text);
+          const expected = new URL(SCRIPT_BASE);
+
+          if (
+            url.origin === expected.origin &&
+            url.pathname.replace(/\/+$/, "") ===
+              expected.pathname.replace(/\/+$/, "")
+          ) {
+            ticketId = url.searchParams.get("ticket") || "";
+          }
+        } catch (error) {
+          // It may instead contain a standalone ticket ID.
         }
 
-        const ticketId = scannedUrl.searchParams.get("ticket");
-        const page = scannedUrl.searchParams.get("page");
+        // Support a QR containing only the 16-character ticket ID.
+        if (!ticketId && /^[A-Fa-f0-9]{16}$/.test(text)) {
+          ticketId = text;
+        }
 
-        if (!ticketId || page !== "checkin") {
-          throw new Error("Ticket ID missing or QR format invalid.");
+        // Support text that includes a ticket query parameter.
+        if (!ticketId) {
+          const match = text.match(/[?&]ticket=([A-Fa-f0-9]{16})/i);
+          if (match) ticketId = match[1];
+        }
+
+        if (!/^[A-Fa-f0-9]{16}$/.test(ticketId)) {
+          processing = false;
+          setStatus(
+            "QR FORMAT NOT RECOGNISED\n\n" +
+            "This QR does not contain a valid UCWA ticket ID. " +
+            "Scan the QR generated by the event registration page."
+          );
+          return;
         }
 
         await stopScanner();
 
-        document.getElementById("status").textContent =
-          "Ticket accepted. Opening check-in page...";
+        setStatus("Ticket detected. Opening authorised check-in page...");
 
-        // Rebuild the destination using your trusted deployment URL.
         const approvalUrl =
           SCRIPT_BASE +
           "?page=checkin&ticket=" +
-          encodeURIComponent(ticketId);
+          encodeURIComponent(ticketId.toUpperCase());
 
-        window.location.href = approvalUrl;
+        window.location.assign(approvalUrl);
 
       } catch (error) {
         processing = false;
-        document.getElementById("status").textContent =
-          error.message || "Could not read this ticket.";
+        setStatus("SCAN ERROR\n\n" + (error.message || String(error)));
       }
     }
   </script>
