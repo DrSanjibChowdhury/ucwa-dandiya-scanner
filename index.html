@@ -45,6 +45,16 @@
     .ticket dd { margin:0; font-weight:600; overflow-wrap:anywhere; }
     .approved { font-size:1.55rem; font-weight:900; letter-spacing:.04em; text-align:center; padding:16px 8px; border-radius:12px; background:#dff7e6; color:#11652d; border:2px solid #69c784; }
     .duplicate { font-size:1.15rem; font-weight:900; text-align:center; padding:14px 8px; border-radius:12px; background:#fff0d9; color:#824900; border:2px solid #edc16d; }
+    .header-actions { display:flex; flex-direction:column; align-items:stretch; gap:8px; min-width:104px; }
+    button.header-exit-button { width:100%; margin:0; min-height:42px; padding:10px 14px; background:#c62828; color:#fff; border:2px solid #a71919; border-radius:10px; font-weight:900; letter-spacing:.08em; }
+    button.return-button { background:#16833b; color:#fff; border:3px solid #0e672d; min-height:64px; font-size:1.12rem; font-weight:900; }
+    .modal { position:fixed; inset:0; z-index:100000; display:flex; align-items:center; justify-content:center; padding:22px; background:rgba(25,10,35,.68); }
+    .modal.hidden { display:none !important; }
+    .modal-card { width:100%; max-width:420px; padding:24px 20px; text-align:center; background:#fff; border-radius:20px; border:4px solid #16833b; }
+    .modal-card.duplicate { border-color:#c62828; background:#fffafa; color:#7c1515; }
+    .modal-icon { font-size:2.4rem; font-weight:900; }
+    .modal-card.duplicate .modal-icon { color:#c62828; }
+    button.modal-close-button { margin-top:8px; background:#64249a; font-weight:850; }
     .topline { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin-bottom:16px; }
     .topline .event { flex:1; }
     .pill { font-size:.78rem; font-weight:750; border-radius:999px; background:#eee5f8; color:var(--purple-dark); padding:6px 9px; white-space:nowrap; }
@@ -60,7 +70,10 @@
           <h1>🪔 UCWA Dandiya Event 2026</h1>
           <div class="sub">Volunteer Entry Approval</div>
         </div>
-        <span class="pill">VOLUNTEER</span>
+        <div class="header-actions">
+          <span class="pill">VOLUNTEER</span>
+          <button type="button" id="headerExitButton" class="header-exit-button">EXIT</button>
+        </div>
       </div>
 
       <section id="loginSection">
@@ -79,21 +92,27 @@
         <div id="reader"></div>
         <p class="scan-hint">Keep the QR code inside the camera frame.</p>
         <button type="button" id="restartButton" class="outline">Scan Next Ticket</button>
-        <button type="button" id="logoutButton" class="exit-button">EXIT</button>
+        <!-- Session exit is available in the top-right header. -->
       </section>
 
       <section id="resultSection" class="hidden" aria-live="polite">
         <div id="resultMessage" class="status"></div>
         <div id="ticketDetails" class="ticket hidden"></div>
         <button type="button" id="approveButton" class="hidden">Approve Entry</button>
-        <button type="button" id="backToScannerButton" class="outline">Return to Scanner</button>
-        <button type="button" id="resultExitButton" class="exit-button">EXIT</button>
+        <button type="button" id="backToScannerButton" class="return-button">Return to Scanner</button>
       </section>
     </div>
     <p class="small" style="text-align:center;margin-top:14px">UCWA Dandiya Event 2026 · Authorized volunteers only</p>
   </main>
 
-  <button type="button" id="globalExitButton" class="global-exit-button">EXIT</button>
+  <div id="resultModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div id="modalCard" class="modal-card">
+      <div id="modalIcon" class="modal-icon">✓</div>
+      <h2 id="modalTitle">APPROVED</h2>
+      <p id="modalText"></p>
+      <button type="button" id="modalCloseButton" class="modal-close-button">Continue</button>
+    </div>
+  </div>
 
 <script>
 (() => {
@@ -119,6 +138,23 @@
   let processingScan = false;
   let currentTicketId = "";
   let currentTicket = null;
+  let modalReturnToScanner = false;
+
+  function showOutcomeModal(kind, title, message) {
+    const modal = $("resultModal");
+    const card = $("modalCard");
+    const icon = $("modalIcon");
+    card.classList.toggle("duplicate", kind === "duplicate");
+    icon.textContent = kind === "duplicate" ? "!" : "✓";
+    $("modalTitle").textContent = title;
+    $("modalText").textContent = message;
+    $("modalCloseButton").textContent = "Continue";
+    modal.classList.remove("hidden");
+  }
+
+  function closeOutcomeModal() {
+    $("resultModal").classList.add("hidden");
+  }
 
   function getToken() {
     return sessionStorage.getItem(TOKEN_KEY) || "";
@@ -287,6 +323,7 @@
 
       if (data.alreadyCheckedIn || data.status === "CHECKED IN") {
         showResult("ALREADY APPROVED — DUPLICATE ENTRY.", "warn", data, false);
+        showOutcomeModal("duplicate", "DUPLICATE ENTRY", "This ticket has already been checked in. Entry cannot be approved again.");
         return;
       }
 
@@ -370,7 +407,8 @@
         resultMessage.className = "approved";
         resultMessage.textContent = "APPROVED";
         approveButton.classList.add("hidden");
-        $("backToScannerButton").textContent = "Scan Next Ticket";
+        $("backToScannerButton").textContent = "Return to Scanner";
+        showOutcomeModal("approved", "APPROVED", "Entry approved successfully. You can now scan the next ticket.");
       } else if (data && data.alreadyCheckedIn) {
         showResult("ALREADY APPROVED — DUPLICATE ENTRY.", "warn", data, false);
       } else {
@@ -402,9 +440,8 @@
     showLogin("Session ended. Enter a volunteer PIN to continue.");
   }
 
-  $("logoutButton").addEventListener("click", exitVolunteerSession);
-  $("resultExitButton").addEventListener("click", exitVolunteerSession);
-  $("globalExitButton").addEventListener("click", exitVolunteerSession);
+  $("headerExitButton").addEventListener("click", exitVolunteerSession);
+  $("modalCloseButton").addEventListener("click", closeOutcomeModal);
 
   // Restore this tab's active session after a refresh.
   if (getToken()) {
