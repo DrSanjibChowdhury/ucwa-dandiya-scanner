@@ -21,6 +21,8 @@
     button { width:100%; border:0; border-radius:10px; padding:14px 16px; margin-top:12px; background:var(--purple); color:#fff; font:700 1rem/1.2 inherit; cursor:pointer; min-height:48px; }
     button:disabled { opacity:.55; cursor:not-allowed; }
     button.secondary { background:#62576d; }
+    button.exit-button { background:#c62828; color:#fff; border:2px solid #a71919; font-weight:900; letter-spacing:.06em; }
+    button.exit-button:active { background:#a71919; }
     button.outline { background:#fff; color:var(--purple-dark); border:1px solid var(--purple); }
     .hidden { display:none !important; }
     .status { margin-top:14px; padding:12px 14px; border-radius:10px; background:#f0eafa; overflow-wrap:anywhere; }
@@ -69,7 +71,7 @@
         <div id="reader"></div>
         <p class="scan-hint">Keep the QR code inside the camera frame.</p>
         <button type="button" id="restartButton" class="outline">Scan Next Ticket</button>
-        <button type="button" id="logoutButton" class="secondary">Change Volunteer / Logout</button>
+        <button type="button" id="logoutButton" class="exit-button">EXIT</button>
       </section>
 
       <section id="resultSection" class="hidden" aria-live="polite">
@@ -77,6 +79,7 @@
         <div id="ticketDetails" class="ticket hidden"></div>
         <button type="button" id="approveButton" class="hidden">Approve Entry</button>
         <button type="button" id="backToScannerButton" class="outline">Return to Scanner</button>
+        <button type="button" id="resultExitButton" class="exit-button">EXIT</button>
       </section>
     </div>
     <p class="small" style="text-align:center;margin-top:14px">UCWA Dandiya Event 2026 · Authorized volunteers only</p>
@@ -374,18 +377,23 @@
   $("backToScannerButton").addEventListener("click", returnToScanner);
   $("restartButton").addEventListener("click", returnToScanner);
 
-  $("logoutButton").addEventListener("click", async () => {
+  async function exitVolunteerSession() {
     const token = getToken();
     await stopScanner();
+
     try {
       if (token) await api("logout", { token });
     } catch (_) {}
+
     sessionStorage.removeItem(TOKEN_KEY);
     sessionStorage.removeItem(VOLUNTEER_KEY);
     currentTicket = null;
     currentTicketId = "";
-    showLogin("Logged out. Enter a volunteer PIN to continue.");
-  });
+    showLogin("Session ended. Enter a volunteer PIN to continue.");
+  }
+
+  $("logoutButton").addEventListener("click", exitVolunteerSession);
+  $("resultExitButton").addEventListener("click", exitVolunteerSession);
 
   // Restore this tab's active session after a refresh.
   if (getToken()) {
