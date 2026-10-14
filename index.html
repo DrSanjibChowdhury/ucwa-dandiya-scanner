@@ -1,214 +1,399 @@
-```html
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>UCWA Dandiya Event 2026 - Scanner</title>
-
+  <meta name="theme-color" content="#51218a">
+  <title>UCWA Dandiya Event 2026 — Volunteer Scanner</title>
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
-
   <style>
+    :root { color-scheme: light; --purple:#64249a; --purple-dark:#4b176f; --ink:#241b2d; --muted:#665d70; --bg:#f6f2fb; --card:#fff; --line:#e4d9ef; }
     * { box-sizing: border-box; }
-
-    body {
-      font-family: Arial, sans-serif;
-      max-width: 520px;
-      margin: 0 auto;
-      padding: 20px;
-      background: #fff8ed;
-      color: #33220f;
-      text-align: center;
-    }
-
-    h1 { color: #8b1e3f; font-size: 26px; }
-
-    #reader {
-      width: 100%;
-      margin: 20px auto;
-      background: white;
-      border-radius: 10px;
-      overflow: hidden;
-    }
-
-    button {
-      width: 100%;
-      padding: 14px;
-      margin: 7px 0;
-      border: 0;
-      border-radius: 8px;
-      background: #8b1e3f;
-      color: white;
-      font-size: 16px;
-      font-weight: bold;
-    }
-
-    button:disabled { opacity: .5; }
-
-    #status {
-      margin-top: 18px;
-      padding: 14px;
-      border-radius: 8px;
-      background: #f0e7d8;
-      overflow-wrap: anywhere;
-      white-space: pre-wrap;
-    }
+    body { margin:0; background:var(--bg); color:var(--ink); font:16px/1.45 system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif; }
+    .wrap { max-width:620px; margin:0 auto; padding:18px 14px 36px; }
+    .card { background:var(--card); border:1px solid var(--line); border-radius:18px; padding:20px; box-shadow:0 6px 22px #2b10400d; }
+    h1 { margin:0 0 6px; color:var(--purple); font-size:1.45rem; line-height:1.2; }
+    h2 { margin:0 0 8px; font-size:1.15rem; }
+    p { margin:8px 0 14px; }
+    .sub { color:var(--muted); font-size:.94rem; }
+    label { display:block; font-weight:650; margin:14px 0 6px; }
+    input { width:100%; padding:14px; font:inherit; border:1px solid #bdb1c9; border-radius:10px; background:#fff; color:#241b2d; }
+    button { width:100%; border:0; border-radius:10px; padding:14px 16px; margin-top:12px; background:var(--purple); color:#fff; font:700 1rem/1.2 inherit; cursor:pointer; min-height:48px; }
+    button:disabled { opacity:.55; cursor:not-allowed; }
+    button.secondary { background:#62576d; }
+    button.outline { background:#fff; color:var(--purple-dark); border:1px solid var(--purple); }
+    .hidden { display:none !important; }
+    .status { margin-top:14px; padding:12px 14px; border-radius:10px; background:#f0eafa; overflow-wrap:anywhere; }
+    .status.error { background:#fff0f0; color:#8a1717; border:1px solid #f0c5c5; }
+    .status.success { background:#e8f8ed; color:#145b2b; border:1px solid #b8e5c4; }
+    .status.warn { background:#fff5dc; color:#714d00; border:1px solid #f0dda5; }
+    #reader { width:100%; overflow:hidden; border-radius:12px; }
+    #reader video { border-radius:12px; }
+    .ticket { margin-top:14px; padding:14px; border:1px solid var(--line); border-radius:12px; background:#fcfaff; }
+    .ticket dl { display:grid; grid-template-columns:120px 1fr; gap:7px 10px; margin:10px 0 0; }
+    .ticket dt { color:var(--muted); }
+    .ticket dd { margin:0; font-weight:600; overflow-wrap:anywhere; }
+    .approved { font-size:1.55rem; font-weight:900; letter-spacing:.04em; text-align:center; padding:16px 8px; border-radius:12px; background:#dff7e6; color:#11652d; border:2px solid #69c784; }
+    .duplicate { font-size:1.15rem; font-weight:900; text-align:center; padding:14px 8px; border-radius:12px; background:#fff0d9; color:#824900; border:2px solid #edc16d; }
+    .topline { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin-bottom:16px; }
+    .topline .event { flex:1; }
+    .pill { font-size:.78rem; font-weight:750; border-radius:999px; background:#eee5f8; color:var(--purple-dark); padding:6px 9px; white-space:nowrap; }
+    .small { font-size:.85rem; color:var(--muted); }
+    .scan-hint { text-align:center; color:var(--muted); font-size:.92rem; margin:10px 0 0; }
   </style>
 </head>
-
 <body>
-  <h1>💃 UCWA Dandiya Event 2026</h1>
-  <p>Volunteer QR Check-in Scanner</p>
+  <main class="wrap">
+    <div class="card">
+      <div class="topline">
+        <div class="event">
+          <h1>🪔 UCWA Dandiya Event 2026</h1>
+          <div class="sub">Volunteer Entry Approval</div>
+        </div>
+        <span class="pill">VOLUNTEER</span>
+      </div>
 
-  <div id="reader"></div>
+      <section id="loginSection">
+        <h2>Volunteer login</h2>
+        <p class="sub">Enter your assigned PIN once. Keep this browser tab open while scanning tickets.</p>
+        <form id="loginForm">
+          <label for="pin">Volunteer PIN</label>
+          <input id="pin" name="pin" inputmode="numeric" autocomplete="current-password" pattern="[0-9]{4,12}" maxlength="12" placeholder="Enter your assigned PIN" required>
+          <button id="loginButton" type="submit">Login and Start Scanner</button>
+        </form>
+      </section>
 
-  <button id="startButton" type="button" onclick="startScanner()">
-    Start Camera
-  </button>
+      <section id="scannerSection" class="hidden">
+        <div class="status success" id="loggedInAs"></div>
+        <p class="sub">Point the camera at the attendee's QR ticket. You will stay logged in for successive scans in this tab.</p>
+        <div id="reader"></div>
+        <p class="scan-hint">Keep the QR code inside the camera frame.</p>
+        <button type="button" id="restartButton" class="outline">Scan Next Ticket</button>
+        <button type="button" id="logoutButton" class="secondary">Change Volunteer / Logout</button>
+      </section>
 
-  <button id="stopButton" type="button" onclick="stopScanner()" disabled>
-    Stop Camera
-  </button>
+      <section id="resultSection" class="hidden" aria-live="polite">
+        <div id="resultMessage" class="status"></div>
+        <div id="ticketDetails" class="ticket hidden"></div>
+        <button type="button" id="approveButton" class="hidden">Approve Entry</button>
+        <button type="button" id="backToScannerButton" class="outline">Return to Scanner</button>
+      </section>
+    </div>
+    <p class="small" style="text-align:center;margin-top:14px">UCWA Dandiya Event 2026 · Authorized volunteers only</p>
+  </main>
 
-  <div id="status" role="status" aria-live="polite">
-    Ready. Tap Start Camera.
-  </div>
+<script>
+(() => {
+  "use strict";
 
-  <script>
-    const SCRIPT_BASE =
-      "https://script.google.com/macros/s/AKfycbyBydZOKJQLp7I9ogJs3hCJs6WnV1NErMvq2Y1mqwpipYTbAXwqK8cT-ru7lq6wwYS5/exec";
+  const API_URL = "https://ucwa-dandiya-api.chowdhury-sanjib.workers.dev/";
+  const TOKEN_KEY = "ucwa_dandiya_session_token";
+  const VOLUNTEER_KEY = "ucwa_dandiya_volunteer_name";
 
-    let scanner = null;
-    let starting = false;
-    let processing = false;
+  const $ = (id) => document.getElementById(id);
+  const loginSection = $("loginSection");
+  const scannerSection = $("scannerSection");
+  const resultSection = $("resultSection");
+  const loginForm = $("loginForm");
+  const loginButton = $("loginButton");
+  const loggedInAs = $("loggedInAs");
+  const resultMessage = $("resultMessage");
+  const ticketDetails = $("ticketDetails");
+  const approveButton = $("approveButton");
 
-    function setStatus(message) {
-      document.getElementById("status").textContent = message;
+  let scanner = null;
+  let scannerRunning = false;
+  let processingScan = false;
+  let currentTicketId = "";
+  let currentTicket = null;
+
+  function getToken() {
+    return sessionStorage.getItem(TOKEN_KEY) || "";
+  }
+
+  function setMessage(element, message, type = "") {
+    element.className = "status" + (type ? " " + type : "");
+    element.textContent = message;
+  }
+
+  function showLogin(message = "") {
+    loginSection.classList.remove("hidden");
+    scannerSection.classList.add("hidden");
+    resultSection.classList.add("hidden");
+    if (message) setMessageFromLogin(message);
+  }
+
+  function setMessageFromLogin(message) {
+    let el = $("loginMessage");
+    if (!el) {
+      el = document.createElement("div");
+      el.id = "loginMessage";
+      el.className = "status";
+      loginForm.appendChild(el);
     }
+    setMessage(el, message, "error");
+  }
 
-    async function startScanner() {
-      if (starting || (scanner && scanner.isScanning)) return;
+  function showScanner() {
+    loginSection.classList.add("hidden");
+    resultSection.classList.add("hidden");
+    scannerSection.classList.remove("hidden");
+    loggedInAs.textContent = "Logged in as " + (sessionStorage.getItem(VOLUNTEER_KEY) || "Volunteer");
+    startScanner();
+  }
 
-      starting = true;
-      document.getElementById("startButton").disabled = true;
-      setStatus("Loading scanner and requesting camera access...");
+  function showResult(message, type, ticket = null, canApprove = false) {
+    scannerSection.classList.add("hidden");
+    loginSection.classList.add("hidden");
+    resultSection.classList.remove("hidden");
+    setMessage(resultMessage, message, type);
+    ticketDetails.classList.toggle("hidden", !ticket);
+    approveButton.classList.toggle("hidden", !canApprove);
+    currentTicket = ticket;
+    approveButton.disabled = false;
 
-      try {
-        if (typeof Html5Qrcode === "undefined") {
-          throw new Error(
-            "Scanner library did not load. Check internet access and refresh."
-          );
-        }
-
-        if (!scanner) {
-          scanner = new Html5Qrcode("reader");
-        }
-
-        await scanner.start(
-          { facingMode: "environment" },
-          {
-            fps: 10,
-            qrbox: { width: 240, height: 240 }
-          },
-          function(decodedText) {
-            handleScannedQR(decodedText);
-          },
-          function() {
-            // No QR detected in this frame; continue scanning.
-          }
-        );
-
-        document.getElementById("stopButton").disabled = false;
-        setStatus("Camera active. Point it at an attendee ticket QR code.");
-
-      } catch (error) {
-        setStatus(
-          "CAMERA START FAILED\n\n" +
-          (error && error.message ? error.message : String(error)) +
-          "\n\nCheck camera permission and internet access, then retry."
-        );
-        document.getElementById("startButton").disabled = false;
-
-      } finally {
-        starting = false;
+    if (ticket) {
+      ticketDetails.innerHTML = "";
+      const title = document.createElement("h2");
+      title.textContent = "Ticket details";
+      ticketDetails.appendChild(title);
+      const dl = document.createElement("dl");
+      const fields = [
+        ["Ticket ID", ticket.ticketId || currentTicketId],
+        ["Name", ticket.name || "—"],
+        ["Guest count", String(ticket.guests ?? "—")],
+        ["Attendance", ticket.status || "—"],
+        ["Previously approved by", ticket.approvedBy || "—"],
+        ["Checked in at", ticket.checkedInAt || "—"]
+      ];
+      for (const [label, value] of fields) {
+        const dt = document.createElement("dt");
+        const dd = document.createElement("dd");
+        dt.textContent = label;
+        dd.textContent = value;
+        dl.append(dt, dd);
       }
+      ticketDetails.appendChild(dl);
     }
+  }
 
-    async function stopScanner() {
-      if (!scanner || !scanner.isScanning) return;
+  async function api(action, extra = {}) {
+    const response = await fetch(API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action, ...extra }),
+      cache: "no-store"
+    });
 
-      try {
-        await scanner.stop();
-        document.getElementById("stopButton").disabled = true;
-      } catch (error) {
-        setStatus("Could not stop camera: " + error.message);
+    const raw = await response.text();
+    let data;
+    try {
+      data = JSON.parse(raw);
+    } catch {
+      throw new Error("API returned a non-JSON response. Check Cloudflare Worker and Apps Script deployment.");
+    }
+    if (!response.ok && data && !data.message) {
+      throw new Error("API request failed with HTTP " + response.status);
+    }
+    return data;
+  }
+
+  async function login(pin) {
+    loginButton.disabled = true;
+    loginButton.textContent = "Checking PIN…";
+    try {
+      const data = await api("login", { pin });
+      if (!data || data.ok !== true || !data.token) {
+        throw new Error((data && data.message) || "Login failed. Check your PIN.");
       }
+      sessionStorage.setItem(TOKEN_KEY, data.token);
+      sessionStorage.setItem(VOLUNTEER_KEY, data.volunteer || "Volunteer");
+      $("pin").value = "";
+      const loginMessage = $("loginMessage");
+      if (loginMessage) loginMessage.remove();
+      showScanner();
+    } catch (err) {
+      setMessageFromLogin(err.message || "Login failed.");
+    } finally {
+      loginButton.disabled = false;
+      loginButton.textContent = "Login and Start Scanner";
     }
+  }
 
-    async function handleScannedQR(decodedText) {
-      if (processing) return;
-      processing = true;
+  function extractTicketId(decodedText) {
+    const value = String(decodedText || "").trim();
+    // QR may contain the Apps Script check-in URL or the raw ticket ID.
+    try {
+      const url = new URL(value);
+      const candidate = url.searchParams.get("ticket") ||
+                        url.searchParams.get("ticketId") ||
+                        url.searchParams.get("ticketid");
+      if (candidate) {
+        const id = candidate.trim().toUpperCase();
+        return /^[A-F0-9]{16}$/.test(id) ? id : "";
+      }
+    } catch (_) {}
+    const raw = value.toUpperCase();
+    if (/^[A-F0-9]{16}$/.test(raw)) return raw;
+    const match = value.match(/[?&](?:ticket|ticketId|ticketid)=([A-Fa-f0-9]{16})(?:&|$)/);
+    return match ? match[1].toUpperCase() : "";
+  }
 
-      setStatus("QR detected. Reading ticket...");
+  async function onQrDecoded(decodedText) {
+    if (processingScan) return;
+    processingScan = true;
+    currentTicketId = extractTicketId(decodedText);
 
-      try {
-        const text = decodedText.trim();
-        let ticketId = "";
+    try {
+      await stopScanner();
+      if (!currentTicketId) {
+        showResult("Invalid QR code. Please scan the UCWA event ticket QR.", "error");
+        return;
+      }
 
-        // QR may contain the full Apps Script ticket URL.
-        try {
-          const url = new URL(text);
-          const expected = new URL(SCRIPT_BASE);
+      setMessage(resultMessage, "Checking ticket…");
+      resultSection.classList.remove("hidden");
+      scannerSection.classList.add("hidden");
+      loginSection.classList.add("hidden");
 
-          if (
-            url.origin === expected.origin &&
-            url.pathname.replace(/\/+$/, "") ===
-              expected.pathname.replace(/\/+$/, "")
-          ) {
-            ticketId = url.searchParams.get("ticket") || "";
-          }
-        } catch (error) {
-          // It may instead contain a standalone ticket ID.
-        }
+      const data = await api("verify", {
+        token: getToken(),
+        ticketId: currentTicketId
+      });
 
-        // Support a QR containing only the 16-character ticket ID.
-        if (!ticketId && /^[A-Fa-f0-9]{16}$/.test(text)) {
-          ticketId = text;
-        }
-
-        // Support text that includes a ticket query parameter.
-        if (!ticketId) {
-          const match = text.match(/[?&]ticket=([A-Fa-f0-9]{16})/i);
-          if (match) ticketId = match[1];
-        }
-
-        if (!/^[A-Fa-f0-9]{16}$/.test(ticketId)) {
-          processing = false;
-          setStatus(
-            "QR FORMAT NOT RECOGNISED\n\n" +
-            "This QR does not contain a valid UCWA ticket ID. " +
-            "Scan the QR generated by the event registration page."
-          );
+      if (!data || data.ok !== true) {
+        if (data && /session|log in|authorization/i.test(data.message || "")) {
+          sessionStorage.removeItem(TOKEN_KEY);
+          sessionStorage.removeItem(VOLUNTEER_KEY);
+          showLogin(data.message || "Session expired. Please log in again.");
           return;
         }
-
-        await stopScanner();
-
-        setStatus("Ticket detected. Opening authorised check-in page...");
-
-        const approvalUrl =
-          SCRIPT_BASE +
-          "?page=checkin&ticket=" +
-          encodeURIComponent(ticketId.toUpperCase());
-
-        window.location.assign(approvalUrl);
-
-      } catch (error) {
-        processing = false;
-        setStatus("SCAN ERROR\n\n" + (error.message || String(error)));
+        showResult((data && data.message) || "Ticket verification failed.", "error");
+        return;
       }
+
+      if (data.alreadyCheckedIn || data.status === "CHECKED IN") {
+        showResult("ALREADY APPROVED — DUPLICATE ENTRY.", "warn", data, false);
+        return;
+      }
+
+      showResult("Ticket verified. Confirm the attendee details, then approve entry.", "", data, true);
+    } catch (err) {
+      showResult(err.message || "Unable to verify ticket. Check your connection.", "error");
+    } finally {
+      processingScan = false;
     }
-  </script>
+  }
+
+  async function startScanner() {
+    if (!getToken()) {
+      showLogin("Please log in with your volunteer PIN.");
+      return;
+    }
+    if (scannerRunning) return;
+
+    try {
+      if (!window.Html5Qrcode) {
+        throw new Error("QR scanner library could not load. Check your internet connection and reload.");
+      }
+      if (!scanner) scanner = new Html5Qrcode("reader");
+      scannerRunning = true;
+      await scanner.start(
+        { facingMode: "environment" },
+        { fps: 10, qrbox: (viewWidth, viewHeight) => {
+            const size = Math.floor(Math.min(viewWidth, viewHeight) * 0.75);
+            return { width: size, height: size };
+          }
+        },
+        onQrDecoded,
+        () => {}
+      );
+    } catch (err) {
+      scannerRunning = false;
+      setMessage(resultMessage, "Camera could not start: " + (err.message || err) + ". Allow camera permission and use HTTPS.", "error");
+      resultSection.classList.remove("hidden");
+      scannerSection.classList.add("hidden");
+    }
+  }
+
+  async function stopScanner() {
+    if (scanner && scannerRunning) {
+      try { await scanner.stop(); } catch (_) {}
+      scannerRunning = false;
+    }
+  }
+
+  async function returnToScanner() {
+    resultSection.classList.add("hidden");
+    currentTicket = null;
+    currentTicketId = "";
+    showScanner();
+  }
+
+  loginForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    await login($("pin").value.trim());
+  });
+
+  approveButton.addEventListener("click", async () => {
+    if (!currentTicketId || !getToken()) {
+      showLogin("Your session is missing. Please log in again.");
+      return;
+    }
+    approveButton.disabled = true;
+    approveButton.textContent = "Approving…";
+    try {
+      const data = await api("approve", {
+        token: getToken(),
+        ticketId: currentTicketId
+      });
+      if (data && data.ok === true) {
+        showResult("APPROVED", "success", {
+          ...(currentTicket || {}),
+          ...(data || {}),
+          ticketId: currentTicketId,
+          status: "CHECKED IN"
+        }, false);
+        resultMessage.className = "approved";
+        resultMessage.textContent = "APPROVED";
+        approveButton.classList.add("hidden");
+        $("backToScannerButton").textContent = "Scan Next Ticket";
+      } else if (data && data.alreadyCheckedIn) {
+        showResult("ALREADY APPROVED — DUPLICATE ENTRY.", "warn", data, false);
+      } else {
+        showResult((data && data.message) || "Approval failed.", "error", currentTicket, false);
+      }
+    } catch (err) {
+      showResult(err.message || "Approval failed. Check your connection.", "error", currentTicket, false);
+    } finally {
+      approveButton.disabled = false;
+      approveButton.textContent = "Approve Entry";
+    }
+  });
+
+  $("backToScannerButton").addEventListener("click", returnToScanner);
+  $("restartButton").addEventListener("click", returnToScanner);
+
+  $("logoutButton").addEventListener("click", async () => {
+    const token = getToken();
+    await stopScanner();
+    try {
+      if (token) await api("logout", { token });
+    } catch (_) {}
+    sessionStorage.removeItem(TOKEN_KEY);
+    sessionStorage.removeItem(VOLUNTEER_KEY);
+    currentTicket = null;
+    currentTicketId = "";
+    showLogin("Logged out. Enter a volunteer PIN to continue.");
+  });
+
+  // Restore this tab's active session after a refresh.
+  if (getToken()) {
+    showScanner();
+  } else {
+    showLogin();
+  }
+})();
+</script>
 </body>
 </html>
-```
